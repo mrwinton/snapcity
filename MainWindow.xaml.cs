@@ -16,6 +16,27 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
+    using Microsoft.Kinect.Input;
+    using Microsoft.Speech.Recognition;
+    using Microsoft.Speech.AudioFormat;
+    using Microsoft.Speech.Synthesis;
+    using Microsoft.Speech.Text;
+
+
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.IO;
+    using System.Runtime.InteropServices;
+    using System.Text;
+    using System.Windows;
+    using System.Windows.Documents;
+    using System.Windows.Media;
+    using Microsoft.Kinect;
+    using Microsoft.Speech.AudioFormat;
+    using Microsoft.Speech.Recognition;
+    using SpeechBasics;
+
 
     /// <summary>
     /// Interaction logic for MainWindow
@@ -37,6 +58,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private const double BoneBrushSize = 6;
 
+        // 0 = not active
+        // 1 = squat
+        // 2 = deadlift
+        private int activeLift = 0;
 
         /// <summary>
         /// Thickness of clip edge rectangles
@@ -127,6 +152,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// List of colors for each body tracked
         /// </summary>
         private List<Pen> bodyColors;
+
+        private Pen defaultColour;
 
         /// <summary>
         /// Current status text to display
@@ -226,6 +253,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.bodyColors.Add(new Pen(Brushes.Green, 6));
             this.bodyColors.Add(new Pen(Brushes.Green, 6));
 
+            this.defaultColour = (new Pen(Brushes.Blue, 6));
+
             // initialise the kalman filters for each angle being measured
             this.neckKalman         = new SimpleKalman();
             this.upperBackKalman    = new SimpleKalman();
@@ -254,7 +283,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // initialize the components (controls) of the window
             this.InitializeComponent();
-        }
+
+            WindowLoaded();
+
+
+}
+        
 
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
@@ -423,15 +457,56 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // Draw the bones
             foreach (var bone in this.bones)
             {
-                if (leftKneeAngle < 80)
+
+                if (activeLift != 0)
                 {
-                    // Initialise form detection
-                    this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+                    if (bone.ToString().Contains("Neck"))
+                    {
+                        if (neckAngle < 160 && neckAngle > 180)
+                        {
+                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+                        }
+                    }
+                    else if (bone.ToString().Contains("LeftKnee"))
+                    {
+                        if (leftKneeAngle > 80)
+                        {
+                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+                        }
+
+                    }
+                    else if (bone.ToString().Contains("RightKnee"))
+                    {
+                        if (rightKneeAngle > 170)
+                        {
+                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+                        }
+                    }
+                    else if (bone.ToString().Contains("SpineShoulder"))
+                    {
+                        if (upperBackAngle > 170)
+                        {
+                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+                        }
+                    }
+                    else if (bone.ToString().Contains("SpineMid"))
+                    {
+                        if (lowerBackAngle > 80)
+                        {
+                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+                        }
+                    }
+                    else
+                    {
+                        this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, drawingPen);
+                    }
                 }
                 else
                 {
-                    this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, drawingPen);
+                    //TODO CHANGE THE COLOUR HERE TO BLUE ????
+                    this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, defaultColour);
                 }
+
             }
 
             Console.WriteLine(rightKneeAngle);
@@ -507,7 +582,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             Joint spineShoulder = new Joint();
             joints.TryGetValue(JointType.SpineShoulder, out spineShoulder);
 
-            return AngleBetweenJoints(head, spineShoulder, neck);
+            return AngleBetweenJoints(head, neck,spineShoulder );
         }
 
         private double getRightKneeAngle(IReadOnlyDictionary<JointType, Joint> joints)
@@ -709,5 +784,205 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
+
+
+
+
+
+
+            /// <summary>
+            /// Stream for 32b-16b conversion.
+            /// </summary>
+            private KinectAudioStream convertStream = null;
+
+            /// <summary>
+            /// Speech recognition engine using audio data from Kinect.
+            /// </summary>
+            private SpeechRecognitionEngine speechEngine = null;
+
+            /// <summary>
+            /// Gets the metadata for the speech recognizer (acoustic model) most suitable to
+            /// process audio from Kinect device.
+            /// </summary>
+            /// <returns>
+            /// RecognizerInfo if found, <code>null</code> otherwise.
+            /// </returns>
+            private static RecognizerInfo TryGetKinectRecognizer()
+            {
+                IEnumerable<RecognizerInfo> recognizers;
+
+                // This is required to catch the case when an expected recognizer is not installed.
+                // By default - the x86 Speech Runtime is always expected. 
+                try
+                {
+                    recognizers = SpeechRecognitionEngine.InstalledRecognizers();
+                }
+                catch (COMException)
+                {
+                    return null;
+                }
+
+                foreach (RecognizerInfo recognizer in recognizers)
+                {
+                    string value;
+                    recognizer.AdditionalInfo.TryGetValue("Kinect", out value);
+                    if ("True".Equals(value, StringComparison.OrdinalIgnoreCase) && "en-US".Equals(recognizer.Culture.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return recognizer;
+                    }
+                }
+
+                return null;
+            }
+
+            /// <summary>
+            /// Execute initialization tasks.
+            /// </summary>
+            /// <param name="sender">object sending the event</param>
+            /// <param name="e">event arguments</param>
+            private void WindowLoaded()
+            {
+                // Only one sensor is supported
+                this.kinectSensor = KinectSensor.GetDefault();
+
+                if (this.kinectSensor != null)
+                {
+                    // open the sensor
+                    this.kinectSensor.Open();
+
+                    // grab the audio stream
+                    IReadOnlyList<AudioBeam> audioBeamList = this.kinectSensor.AudioSource.AudioBeams;
+                    System.IO.Stream audioStream = audioBeamList[0].OpenInputStream();
+
+                    // create the convert stream
+                    this.convertStream = new KinectAudioStream(audioStream);
+                }
+
+
+                RecognizerInfo ri = TryGetKinectRecognizer();
+
+                if (null != ri)
+                {
+                    this.speechEngine = new SpeechRecognitionEngine(ri.Id);
+
+                    /****************************************************************
+                    * 
+                    * Use this code to create grammar programmatically rather than from
+                    * a grammar file.
+                    * 
+                    * var directions = new Choices();
+                    * directions.Add(new SemanticResultValue("forward", "FORWARD"));
+                    * directions.Add(new SemanticResultValue("forwards", "FORWARD"));
+                    * directions.Add(new SemanticResultValue("straight", "FORWARD"));
+                    * directions.Add(new SemanticResultValue("backward", "BACKWARD"));
+                    * directions.Add(new SemanticResultValue("backwards", "BACKWARD"));
+                    * directions.Add(new SemanticResultValue("back", "BACKWARD"));
+                    * directions.Add(new SemanticResultValue("turn left", "LEFT"));
+                    * directions.Add(new SemanticResultValue("turn right", "RIGHT"));
+                    *
+                    * var gb = new GrammarBuilder { Culture = ri.Culture };
+                    * gb.Append(directions);
+                    *
+                    * var g = new Grammar(gb);
+                    * 
+                    ****************************************************************/
+
+                    // Create a grammar from grammar definition XML file.
+                    using (var memoryStream = new MemoryStream(Encoding.ASCII.GetBytes(Properties.Resources.SpeechGrammar)))
+                    {
+                        var g = new Grammar(memoryStream);
+                        this.speechEngine.LoadGrammar(g);
+                    }
+
+                    this.speechEngine.SpeechRecognized += this.SpeechRecognized;
+                    this.speechEngine.SpeechRecognitionRejected += this.SpeechRejected;
+
+                    // let the convertStream know speech is going active
+                    this.convertStream.SpeechActive = true;
+
+                    // For long recognition sessions (a few hours or more), it may be beneficial to turn off adaptation of the acoustic model. 
+                    // This will prevent recognition accuracy from degrading over time.
+                    ////speechEngine.UpdateRecognizerSetting("AdaptationOn", 0);
+
+                    this.speechEngine.SetInputToAudioStream(
+                        this.convertStream, new SpeechAudioFormatInfo(EncodingFormat.Pcm, 16000, 16, 1, 32000, 2, null));
+                    this.speechEngine.RecognizeAsync(RecognizeMode.Multiple);
+                }
+                    }
+
+            /// <summary>
+            /// Execute un-initialization tasks.
+            /// </summary>
+            /// <param name="sender">object sending the event.</param>
+            /// <param name="e">event arguments.</param>
+            private void WindowClosing(object sender, CancelEventArgs e)
+            {
+                if (null != this.convertStream)
+                {
+                    this.convertStream.SpeechActive = false;
+                }
+
+                if (null != this.speechEngine)
+                {
+                    this.speechEngine.SpeechRecognized -= this.SpeechRecognized;
+                    this.speechEngine.SpeechRecognitionRejected -= this.SpeechRejected;
+                    this.speechEngine.RecognizeAsyncStop();
+                }
+
+                if (null != this.kinectSensor)
+                {
+                    this.kinectSensor.Close();
+                    this.kinectSensor = null;
+                }
+            }
+
+            /// <summary>
+            /// Remove any highlighting from recognition instructions.
+            /// </summary>
+
+            /// <summary>
+            /// Handler for recognized speech events.
+            /// </summary>
+            /// <param name="sender">object sending the event.</param>
+            /// <param name="e">event arguments.</param>
+            private void SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+            {
+                // Speech utterance confidence below which we treat speech as if it hadn't been heard
+                const double ConfidenceThreshold = 0.3;
+
+                // Number of degrees in a right angle.
+                const int DegreesInRightAngle = 90;
+
+                // Number of pixels turtle should move forwards or backwards each time.
+                const int DisplacementAmount = 60;
+
+                if (e.Result.Confidence >= ConfidenceThreshold)
+                {
+                    switch (e.Result.Semantics.Value.ToString())
+                    {
+                        case "DEADLIFT":
+                            Console.WriteLine("DEADLIFT");
+                        activeLift = 2;
+                            break;
+                        case "SQUAT":
+                            Console.WriteLine("SQUAT");
+                        activeLift = 1;
+                            break;
+                        case "STOP":
+                        activeLift = 0;
+                            Console.WriteLine("STOP");
+                            break;           
+                }
+                }
+            }
+
+            /// <summary>
+            /// Handler for rejected speech events.
+            /// </summary>
+            /// <param name="sender">object sending the event.</param>
+            /// <param name="e">event arguments.</param>
+            private void SpeechRejected(object sender, SpeechRecognitionRejectedEventArgs e)
+            {
+            }
+        }
     }
-}
