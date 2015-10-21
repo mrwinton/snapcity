@@ -458,8 +458,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
        
                 if (CurrentLift != Type.Inactive)
                 {
-                    
-
                     if (CurrentLift == Type.Squat)
                     {
                         Form form = this.squatTracker.track(angles, bone, joints, jointPoints);
@@ -468,7 +466,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     }
                     else if (CurrentLift == Type.DeadLift)
                     {
-                        Form form = this.squatTracker.track(angles, bone, joints, jointPoints);                    
+                        Form form = this.deadLiftTracker.track(angles, bone, joints, jointPoints);                    
                         drawBoneWithForm(form, bone, joints, jointPoints, drawingContext, drawingPen);
 
                     }
@@ -477,7 +475,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 {
                     this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, defaultColour);
                 }
-
             }
 
             // draws the circles representing the joints (NB: yellow = inferred)

@@ -17,14 +17,14 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             {
                 if (angles["neckAngle"] < 160 && angles["neckAngle"] > 180)
                 {
-                    return Form.Bad;
+                    return Form.Good;
                 }
             }
             else if (bone.ToString().Contains("LeftKnee"))
             {
                 if (angles["leftKneeAngle"] > 80)
                 {
-                    return Form.Bad;
+                    return Form.Good;
                 }
 
             }
@@ -32,21 +32,21 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             {
                 if (angles["rightKneeAngle"] > 170)
                 {
-                    return Form.Bad;
+                    return Form.Good;
                 }
             }
             else if (bone.ToString().Contains("SpineShoulder"))
             {
                 if (angles["upperBackAngle"] > 170)
                 {
-                    return Form.Bad;
+                    return Form.Good;
                 }
             }
             else if (bone.ToString().Contains("SpineMid"))
             {
                 if (angles["lowerBackAngle"] > 80)
                 {
-                    return Form.Bad;
+                    return Form.Good;
                 }
             }
 
