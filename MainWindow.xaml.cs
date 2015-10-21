@@ -43,6 +43,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        enum Type { Squat, DeadLift, Inactive };
+
         /// <summary>
         /// Radius of drawn hand circles
         /// </summary>
@@ -58,10 +60,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>
         private const double BoneBrushSize = 6;
 
-        // 0 = not active
-        // 1 = squat
-        // 2 = deadlift
-        private int activeLift = 0;
+        private Type CurrentLift = Type.Inactive;
 
         /// <summary>
         /// Thickness of clip edge rectangles
@@ -169,6 +168,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private SimpleKalman leftKneeKalman = null;
         private SimpleKalman rightKneeKalman = null;
 
+        private SquatLiftTracker squatTracker = null;
+        private DeadLiftTracker deadLiftTracker = null;
+
+
         /// <summary>
         /// Pen used for drawing bones that are currently inferred
         /// </summary>        
@@ -256,11 +259,15 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.defaultColour = (new Pen(Brushes.Blue, 6));
 
             // initialise the kalman filters for each angle being measured
-            this.neckKalman         = new SimpleKalman();
-            this.upperBackKalman    = new SimpleKalman();
-            this.lowerBackKalman    = new SimpleKalman();
-            this.leftKneeKalman     = new SimpleKalman();
-            this.rightKneeKalman    = new SimpleKalman();
+            this.neckKalman = new SimpleKalman();
+            this.upperBackKalman = new SimpleKalman();
+            this.lowerBackKalman = new SimpleKalman();
+            this.leftKneeKalman = new SimpleKalman();
+            this.rightKneeKalman = new SimpleKalman();
+
+            // initialise the lift trackers
+            this.squatTracker = new SquatLiftTracker();
+            this.deadLiftTracker = new DeadLiftTracker();
 
             // set IsAvailableChanged event notifier
             this.kinectSensor.IsAvailableChanged += this.Sensor_IsAvailableChanged;
@@ -285,10 +292,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.InitializeComponent();
 
             WindowLoaded();
+        }
 
-
-}
-        
 
         /// <summary>
         /// INotifyPropertyChangedPropertyChanged event to allow window controls to bind to changeable data
@@ -427,9 +432,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                             }
 
                             this.DrawBody(joints, jointPoints, dc, drawPen);
-
-                            this.DrawHand(body.HandLeftState, jointPoints[JointType.HandLeft], dc);
-                            this.DrawHand(body.HandRightState, jointPoints[JointType.HandRight], dc);
                         }
                     }
 
@@ -448,71 +450,75 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// <param name="drawingPen">specifies color to draw a specific body</param>
         private void DrawBody(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
         {
-            double leftKneeAngle    = leftKneeKalman.update(getLeftKneeAngle(joints));
-            double rightKneeAngle   = rightKneeKalman.update(getRightKneeAngle(joints));
-            double lowerBackAngle   = lowerBackKalman.update(getLowerBackAngle(joints));
-            double upperBackAngle   = upperBackKalman.update(getUpperBackAngle(joints));
-            double neckAngle        = neckKalman.update(getNeckAngle(joints));
+            Dictionary<String, Double> angles = getAngleDictionary(joints);
 
             // Draw the bones
             foreach (var bone in this.bones)
             {
-
-                if (activeLift != 0)
+       
+                if (CurrentLift != Type.Inactive)
                 {
-                    if (bone.ToString().Contains("Neck"))
+                    
+
+                    if (CurrentLift == Type.Squat)
                     {
-                        if (neckAngle < 160 && neckAngle > 180)
-                        {
-                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
-                        }
-                    }
-                    else if (bone.ToString().Contains("LeftKnee"))
-                    {
-                        if (leftKneeAngle > 80)
-                        {
-                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
-                        }
+                        Form form = this.squatTracker.track(angles, bone, joints, jointPoints);
+                        drawBoneWithForm(form, bone, joints, jointPoints, drawingContext, drawingPen);
 
                     }
-                    else if (bone.ToString().Contains("RightKnee"))
+                    else if (CurrentLift == Type.DeadLift)
                     {
-                        if (rightKneeAngle > 170)
-                        {
-                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
-                        }
-                    }
-                    else if (bone.ToString().Contains("SpineShoulder"))
-                    {
-                        if (upperBackAngle > 170)
-                        {
-                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
-                        }
-                    }
-                    else if (bone.ToString().Contains("SpineMid"))
-                    {
-                        if (lowerBackAngle > 80)
-                        {
-                            this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
-                        }
-                    }
-                    else
-                    {
-                        this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, drawingPen);
+                        Form form = this.squatTracker.track(angles, bone, joints, jointPoints);                    
+                        drawBoneWithForm(form, bone, joints, jointPoints, drawingContext, drawingPen);
+
                     }
                 }
                 else
                 {
-                    //TODO CHANGE THE COLOUR HERE TO BLUE ????
                     this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, defaultColour);
                 }
 
             }
 
+            // draws the circles representing the joints (NB: yellow = inferred)
+            drawJoints(joints, jointPoints, drawingContext);
+        }
+
+        private void drawBoneWithForm(Form form, Tuple<JointType, JointType> bone, IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext, Pen drawingPen)
+        {
+            if (form == Form.Good)
+            {
+                this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, goodFormBonePen);
+            }
+            else if (form == Form.Warn)
+            {
+                this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, warningFormBonePen);
+            }
+            else if (form == Form.Bad)
+            {
+                this.DrawBone(joints, jointPoints, bone.Item1, bone.Item2, drawingContext, badFormBonePen);
+            }
+        }
+
+        public Dictionary<String, Double> getAngleDictionary(IReadOnlyDictionary<JointType, Joint> joints)
+        {
+            Dictionary<String, Double> angles = new Dictionary<String, Double>();
+
+            double leftKneeAngle = leftKneeKalman.update(getLeftKneeAngle(joints));
+            double rightKneeAngle = rightKneeKalman.update(getRightKneeAngle(joints));
+            double lowerBackAngle = lowerBackKalman.update(getLowerBackAngle(joints));
+            double upperBackAngle = upperBackKalman.update(getUpperBackAngle(joints));
+            double neckAngle = neckKalman.update(getNeckAngle(joints));
+
+            angles.Add("leftKneeAngle", leftKneeAngle);
+            angles.Add("rightKneeAngle", rightKneeAngle);
+            angles.Add("lowerBackAngle", lowerBackAngle);
+            angles.Add("upperBackAngle", upperBackAngle);
+            angles.Add("neckAngle", neckAngle);
+
             Console.WriteLine(rightKneeAngle);
 
-            // We need to the angle from the joints
-            drawJoints(joints, jointPoints, drawingContext);
+            return angles;
         }
 
         private void drawJoints(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext)
@@ -582,7 +588,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             Joint spineShoulder = new Joint();
             joints.TryGetValue(JointType.SpineShoulder, out spineShoulder);
 
-            return AngleBetweenJoints(head, neck,spineShoulder );
+            return AngleBetweenJoints(spineShoulder, neck, head);
         }
 
         private double getRightKneeAngle(IReadOnlyDictionary<JointType, Joint> joints)
@@ -648,30 +654,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
 
             drawingContext.DrawLine(drawPen, jointPoints[jointType0], jointPoints[jointType1]);
-        }
-
-        /// <summary>
-        /// Draws a hand symbol if the hand is tracked: red circle = closed, green circle = opened; blue circle = lasso
-        /// </summary>
-        /// <param name="handState">state of the hand</param>
-        /// <param name="handPosition">position of the hand</param>
-        /// <param name="drawingContext">drawing context to draw to</param>
-        private void DrawHand(HandState handState, Point handPosition, DrawingContext drawingContext)
-        {
-            switch (handState)
-            {
-                case HandState.Closed:
-                    drawingContext.DrawEllipse(this.handClosedBrush, null, handPosition, HandSize, HandSize);
-                    break;
-
-                case HandState.Open:
-                    drawingContext.DrawEllipse(this.handOpenBrush, null, handPosition, HandSize, HandSize);
-                    break;
-
-                case HandState.Lasso:
-                    drawingContext.DrawEllipse(this.handLassoBrush, null, handPosition, HandSize, HandSize);
-                    break;
-            }
         }
 
         /// <summary>
@@ -785,204 +767,199 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
 
+        /// <summary>
+        /// Stream for 32b-16b conversion.
+        /// </summary>
+        private KinectAudioStream convertStream = null;
 
+        /// <summary>
+        /// Speech recognition engine using audio data from Kinect.
+        /// </summary>
+        private SpeechRecognitionEngine speechEngine = null;
 
+        /// <summary>
+        /// Gets the metadata for the speech recognizer (acoustic model) most suitable to
+        /// process audio from Kinect device.
+        /// </summary>
+        /// <returns>
+        /// RecognizerInfo if found, <code>null</code> otherwise.
+        /// </returns>
+        private static RecognizerInfo TryGetKinectRecognizer()
+        {
+            IEnumerable<RecognizerInfo> recognizers;
 
-
-
-            /// <summary>
-            /// Stream for 32b-16b conversion.
-            /// </summary>
-            private KinectAudioStream convertStream = null;
-
-            /// <summary>
-            /// Speech recognition engine using audio data from Kinect.
-            /// </summary>
-            private SpeechRecognitionEngine speechEngine = null;
-
-            /// <summary>
-            /// Gets the metadata for the speech recognizer (acoustic model) most suitable to
-            /// process audio from Kinect device.
-            /// </summary>
-            /// <returns>
-            /// RecognizerInfo if found, <code>null</code> otherwise.
-            /// </returns>
-            private static RecognizerInfo TryGetKinectRecognizer()
+            // This is required to catch the case when an expected recognizer is not installed.
+            // By default - the x86 Speech Runtime is always expected. 
+            try
             {
-                IEnumerable<RecognizerInfo> recognizers;
-
-                // This is required to catch the case when an expected recognizer is not installed.
-                // By default - the x86 Speech Runtime is always expected. 
-                try
-                {
-                    recognizers = SpeechRecognitionEngine.InstalledRecognizers();
-                }
-                catch (COMException)
-                {
-                    return null;
-                }
-
-                foreach (RecognizerInfo recognizer in recognizers)
-                {
-                    string value;
-                    recognizer.AdditionalInfo.TryGetValue("Kinect", out value);
-                    if ("True".Equals(value, StringComparison.OrdinalIgnoreCase) && "en-US".Equals(recognizer.Culture.Name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return recognizer;
-                    }
-                }
-
+                recognizers = SpeechRecognitionEngine.InstalledRecognizers();
+            }
+            catch (COMException)
+            {
                 return null;
             }
 
-            /// <summary>
-            /// Execute initialization tasks.
-            /// </summary>
-            /// <param name="sender">object sending the event</param>
-            /// <param name="e">event arguments</param>
-            private void WindowLoaded()
+            foreach (RecognizerInfo recognizer in recognizers)
             {
-                // Only one sensor is supported
-                this.kinectSensor = KinectSensor.GetDefault();
-
-                if (this.kinectSensor != null)
+                string value;
+                recognizer.AdditionalInfo.TryGetValue("Kinect", out value);
+                if ("True".Equals(value, StringComparison.OrdinalIgnoreCase) && "en-US".Equals(recognizer.Culture.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    // open the sensor
-                    this.kinectSensor.Open();
-
-                    // grab the audio stream
-                    IReadOnlyList<AudioBeam> audioBeamList = this.kinectSensor.AudioSource.AudioBeams;
-                    System.IO.Stream audioStream = audioBeamList[0].OpenInputStream();
-
-                    // create the convert stream
-                    this.convertStream = new KinectAudioStream(audioStream);
-                }
-
-
-                RecognizerInfo ri = TryGetKinectRecognizer();
-
-                if (null != ri)
-                {
-                    this.speechEngine = new SpeechRecognitionEngine(ri.Id);
-
-                    /****************************************************************
-                    * 
-                    * Use this code to create grammar programmatically rather than from
-                    * a grammar file.
-                    * 
-                    * var directions = new Choices();
-                    * directions.Add(new SemanticResultValue("forward", "FORWARD"));
-                    * directions.Add(new SemanticResultValue("forwards", "FORWARD"));
-                    * directions.Add(new SemanticResultValue("straight", "FORWARD"));
-                    * directions.Add(new SemanticResultValue("backward", "BACKWARD"));
-                    * directions.Add(new SemanticResultValue("backwards", "BACKWARD"));
-                    * directions.Add(new SemanticResultValue("back", "BACKWARD"));
-                    * directions.Add(new SemanticResultValue("turn left", "LEFT"));
-                    * directions.Add(new SemanticResultValue("turn right", "RIGHT"));
-                    *
-                    * var gb = new GrammarBuilder { Culture = ri.Culture };
-                    * gb.Append(directions);
-                    *
-                    * var g = new Grammar(gb);
-                    * 
-                    ****************************************************************/
-
-                    // Create a grammar from grammar definition XML file.
-                    using (var memoryStream = new MemoryStream(Encoding.ASCII.GetBytes(Properties.Resources.SpeechGrammar)))
-                    {
-                        var g = new Grammar(memoryStream);
-                        this.speechEngine.LoadGrammar(g);
-                    }
-
-                    this.speechEngine.SpeechRecognized += this.SpeechRecognized;
-                    this.speechEngine.SpeechRecognitionRejected += this.SpeechRejected;
-
-                    // let the convertStream know speech is going active
-                    this.convertStream.SpeechActive = true;
-
-                    // For long recognition sessions (a few hours or more), it may be beneficial to turn off adaptation of the acoustic model. 
-                    // This will prevent recognition accuracy from degrading over time.
-                    ////speechEngine.UpdateRecognizerSetting("AdaptationOn", 0);
-
-                    this.speechEngine.SetInputToAudioStream(
-                        this.convertStream, new SpeechAudioFormatInfo(EncodingFormat.Pcm, 16000, 16, 1, 32000, 2, null));
-                    this.speechEngine.RecognizeAsync(RecognizeMode.Multiple);
-                }
-                    }
-
-            /// <summary>
-            /// Execute un-initialization tasks.
-            /// </summary>
-            /// <param name="sender">object sending the event.</param>
-            /// <param name="e">event arguments.</param>
-            private void WindowClosing(object sender, CancelEventArgs e)
-            {
-                if (null != this.convertStream)
-                {
-                    this.convertStream.SpeechActive = false;
-                }
-
-                if (null != this.speechEngine)
-                {
-                    this.speechEngine.SpeechRecognized -= this.SpeechRecognized;
-                    this.speechEngine.SpeechRecognitionRejected -= this.SpeechRejected;
-                    this.speechEngine.RecognizeAsyncStop();
-                }
-
-                if (null != this.kinectSensor)
-                {
-                    this.kinectSensor.Close();
-                    this.kinectSensor = null;
+                    return recognizer;
                 }
             }
 
-            /// <summary>
-            /// Remove any highlighting from recognition instructions.
-            /// </summary>
+            return null;
+        }
 
-            /// <summary>
-            /// Handler for recognized speech events.
-            /// </summary>
-            /// <param name="sender">object sending the event.</param>
-            /// <param name="e">event arguments.</param>
-            private void SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        /// <summary>
+        /// Execute initialization tasks.
+        /// </summary>
+        /// <param name="sender">object sending the event</param>
+        /// <param name="e">event arguments</param>
+        private void WindowLoaded()
+        {
+            // Only one sensor is supported
+            this.kinectSensor = KinectSensor.GetDefault();
+
+            if (this.kinectSensor != null)
             {
-                // Speech utterance confidence below which we treat speech as if it hadn't been heard
-                const double ConfidenceThreshold = 0.3;
+                // open the sensor
+                this.kinectSensor.Open();
 
-                // Number of degrees in a right angle.
-                const int DegreesInRightAngle = 90;
+                // grab the audio stream
+                IReadOnlyList<AudioBeam> audioBeamList = this.kinectSensor.AudioSource.AudioBeams;
+                System.IO.Stream audioStream = audioBeamList[0].OpenInputStream();
 
-                // Number of pixels turtle should move forwards or backwards each time.
-                const int DisplacementAmount = 60;
-
-                if (e.Result.Confidence >= ConfidenceThreshold)
-                {
-                    switch (e.Result.Semantics.Value.ToString())
-                    {
-                        case "DEADLIFT":
-                            Console.WriteLine("DEADLIFT");
-                        activeLift = 2;
-                            break;
-                        case "SQUAT":
-                            Console.WriteLine("SQUAT");
-                        activeLift = 1;
-                            break;
-                        case "STOP":
-                        activeLift = 0;
-                            Console.WriteLine("STOP");
-                            break;           
-                }
-                }
+                // create the convert stream
+                this.convertStream = new KinectAudioStream(audioStream);
             }
 
-            /// <summary>
-            /// Handler for rejected speech events.
-            /// </summary>
-            /// <param name="sender">object sending the event.</param>
-            /// <param name="e">event arguments.</param>
-            private void SpeechRejected(object sender, SpeechRecognitionRejectedEventArgs e)
+
+            RecognizerInfo ri = TryGetKinectRecognizer();
+
+            if (null != ri)
             {
+                this.speechEngine = new SpeechRecognitionEngine(ri.Id);
+
+                /****************************************************************
+                * 
+                * Use this code to create grammar programmatically rather than from
+                * a grammar file.
+                * 
+                * var directions = new Choices();
+                * directions.Add(new SemanticResultValue("forward", "FORWARD"));
+                * directions.Add(new SemanticResultValue("forwards", "FORWARD"));
+                * directions.Add(new SemanticResultValue("straight", "FORWARD"));
+                * directions.Add(new SemanticResultValue("backward", "BACKWARD"));
+                * directions.Add(new SemanticResultValue("backwards", "BACKWARD"));
+                * directions.Add(new SemanticResultValue("back", "BACKWARD"));
+                * directions.Add(new SemanticResultValue("turn left", "LEFT"));
+                * directions.Add(new SemanticResultValue("turn right", "RIGHT"));
+                *
+                * var gb = new GrammarBuilder { Culture = ri.Culture };
+                * gb.Append(directions);
+                *
+                * var g = new Grammar(gb);
+                * 
+                ****************************************************************/
+
+                // Create a grammar from grammar definition XML file.
+                using (var memoryStream = new MemoryStream(Encoding.ASCII.GetBytes(Properties.Resources.SpeechGrammar)))
+                {
+                    var g = new Grammar(memoryStream);
+                    this.speechEngine.LoadGrammar(g);
+                }
+
+                this.speechEngine.SpeechRecognized += this.SpeechRecognized;
+                this.speechEngine.SpeechRecognitionRejected += this.SpeechRejected;
+
+                // let the convertStream know speech is going active
+                this.convertStream.SpeechActive = true;
+
+                // For long recognition sessions (a few hours or more), it may be beneficial to turn off adaptation of the acoustic model. 
+                // This will prevent recognition accuracy from degrading over time.
+                ////speechEngine.UpdateRecognizerSetting("AdaptationOn", 0);
+
+                this.speechEngine.SetInputToAudioStream(
+                    this.convertStream, new SpeechAudioFormatInfo(EncodingFormat.Pcm, 16000, 16, 1, 32000, 2, null));
+                this.speechEngine.RecognizeAsync(RecognizeMode.Multiple);
             }
         }
+
+        /// <summary>
+        /// Execute un-initialization tasks.
+        /// </summary>
+        /// <param name="sender">object sending the event.</param>
+        /// <param name="e">event arguments.</param>
+        private void WindowClosing(object sender, CancelEventArgs e)
+        {
+            if (null != this.convertStream)
+            {
+                this.convertStream.SpeechActive = false;
+            }
+
+            if (null != this.speechEngine)
+            {
+                this.speechEngine.SpeechRecognized -= this.SpeechRecognized;
+                this.speechEngine.SpeechRecognitionRejected -= this.SpeechRejected;
+                this.speechEngine.RecognizeAsyncStop();
+            }
+
+            if (null != this.kinectSensor)
+            {
+                this.kinectSensor.Close();
+                this.kinectSensor = null;
+            }
+        }
+
+        /// <summary>
+        /// Remove any highlighting from recognition instructions.
+        /// </summary>
+
+        /// <summary>
+        /// Handler for recognized speech events.
+        /// </summary>
+        /// <param name="sender">object sending the event.</param>
+        /// <param name="e">event arguments.</param>
+        private void SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        {
+            // Speech utterance confidence below which we treat speech as if it hadn't been heard
+            const double ConfidenceThreshold = 0.3;
+
+            // Number of degrees in a right angle.
+            const int DegreesInRightAngle = 90;
+
+            // Number of pixels turtle should move forwards or backwards each time.
+            const int DisplacementAmount = 60;
+
+            if (e.Result.Confidence >= ConfidenceThreshold)
+            {
+                switch (e.Result.Semantics.Value.ToString())
+                {
+                    case "DEADLIFT":
+                        Console.WriteLine("DEADLIFT");
+                        CurrentLift = Type.DeadLift;
+                        break;
+                    case "SQUAT":
+                        Console.WriteLine("SQUAT");
+                        CurrentLift = Type.Squat;
+                        break;
+                    case "STOP":
+                        CurrentLift = Type.Inactive;
+                        Console.WriteLine("STOP");
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handler for rejected speech events.
+        /// </summary>
+        /// <param name="sender">object sending the event.</param>
+        /// <param name="e">event arguments.</param>
+        private void SpeechRejected(object sender, SpeechRecognitionRejectedEventArgs e)
+        {
+        }
     }
+}
