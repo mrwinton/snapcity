@@ -513,7 +513,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             angles.Add("upperBackAngle", upperBackAngle);
             angles.Add("neckAngle", neckAngle);
 
-            Console.WriteLine(rightKneeAngle);
+            Console.WriteLine(neckAngle);
 
             return angles;
         }
@@ -932,21 +932,32 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             if (e.Result.Confidence >= ConfidenceThreshold)
             {
-                switch (e.Result.Semantics.Value.ToString())
+                if (CurrentLift == Type.Inactive)
                 {
-                    case "DEADLIFT":
-                        Console.WriteLine("DEADLIFT");
-                        CurrentLift = Type.DeadLift;
-                        break;
-                    case "SQUAT":
-                        Console.WriteLine("SQUAT");
-                        CurrentLift = Type.Squat;
-                        break;
-                    case "STOP":
-                        CurrentLift = Type.Inactive;
-                        Console.WriteLine("STOP");
-                        break;
+                    switch (e.Result.Semantics.Value.ToString())
+                    {
+                        case "DEADLIFT":
+                            Console.WriteLine("DEADLIFT");
+                            CurrentLift = Type.DeadLift;
+                            break;
+                        case "SQUAT":
+                            Console.WriteLine("SQUAT");
+                            CurrentLift = Type.Squat;
+                            break;
+                    }
                 }
+                else
+                {
+                    switch (e.Result.Semantics.Value.ToString())
+                    {
+                        case "STOP":
+                            CurrentLift = Type.Inactive;
+                            Console.WriteLine("STOP");
+                            break;
+                    }
+                }
+
+
             }
         }
 

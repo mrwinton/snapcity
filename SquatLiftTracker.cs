@@ -15,40 +15,40 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         {
             if (bone.ToString().Contains("Neck"))
             {
-                if (angles["neckAngle"] < 160 && angles["neckAngle"] > 180)
+                if (angles["neckAngle"] < 130 || angles["neckAngle"] > 176)
                 {
                     return Form.Bad;
                 }
             }
-            else if (bone.ToString().Contains("LeftKnee"))
-            {
-                if (angles["leftKneeAngle"] > 80)
-                {
-                    return Form.Bad;
-                }
+            //else if (bone.ToString().Contains("LeftKnee"))
+            //{
+            //    if (angles["leftKneeAngle"] > 80)
+            //    {
+            //        return Form.Bad;
+            //    }
 
-            }
-            else if (bone.ToString().Contains("RightKnee"))
-            {
-                if (angles["rightKneeAngle"] > 170)
-                {
-                    return Form.Bad;
-                }
-            }
-            else if (bone.ToString().Contains("SpineShoulder"))
-            {
-                if (angles["upperBackAngle"] > 170)
-                {
-                    return Form.Bad;
-                }
-            }
-            else if (bone.ToString().Contains("SpineMid"))
-            {
-                if (angles["lowerBackAngle"] > 80)
-                {
-                    return Form.Bad;
-                }
-            }
+            //}
+            //else if (bone.ToString().Contains("RightKnee"))
+            //{
+            //    if (angles["rightKneeAngle"] > 170)
+            //    {
+            //        return Form.Bad;
+            //    }
+            //}
+            //else if (bone.ToString().Contains("SpineShoulder"))
+            //{
+            //    if (angles["upperBackAngle"] > 170)
+            //    {
+            //        return Form.Bad;
+            //    }
+            //}
+            //else if (bone.ToString().Contains("SpineMid"))
+            //{
+            //    if (angles["lowerBackAngle"] > 80)
+            //    {
+            //        return Form.Bad;
+            //    }
+            //}
 
             return Form.Good;
         }
