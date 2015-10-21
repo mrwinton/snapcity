@@ -15,43 +15,50 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         {
             if (bone.ToString().Contains("Neck"))
             {
-                if (angles["neckAngle"] < 160 && angles["neckAngle"] > 180)
+                if (angles["neckAngle"] < 130 || angles["neckAngle"] > 176)
                 {
-                    return Form.Good;
+                    return Form.Bad;
                 }
             }
-            else if (bone.ToString().Contains("LeftKnee"))
+            if (bone.ToString().Contains("KneeLeft"))
             {
-                if (angles["leftKneeAngle"] > 80)
+                if (angles["leftKneeAngle"] < 60)
                 {
-                    return Form.Good;
-                }
-
-            }
-            else if (bone.ToString().Contains("RightKnee"))
-            {
-                if (angles["rightKneeAngle"] > 170)
-                {
-                    return Form.Good;
+                    return Form.Bad;
                 }
             }
-            else if (bone.ToString().Contains("SpineShoulder"))
+            if (bone.ToString().Contains("KneeRight"))
             {
-                if (angles["upperBackAngle"] > 170)
+                if (angles["rightKneeAngle"] < 60)
                 {
-                    return Form.Good;
+                    return Form.Bad;
                 }
             }
-            else if (bone.ToString().Contains("SpineMid"))
+            //if (bone.ToString().Contains("SpineShoulder"))
+            //{
+            //    // TODO: make the range larger for warning type
+            //    // Generally the range is only between 176 and 178 FYI
+            //    if (Math.Floor(angles["upperBackAngle"]) != 177)
+            //    {
+            //        return Form.Bad;
+            //    }
+            //}
+            if (bone.ToString().Contains("SpineMid"))
             {
-                if (angles["lowerBackAngle"] > 80)
+                if (Math.Floor(angles["lowerBackAngle"]) != 177 && Math.Floor(angles["lowerBackAngle"]) != 178)
                 {
-                    return Form.Good;
+                    return Form.Bad;
+                }
+            }
+            if ((bone.ToString().Contains("ShoulderRight") && bone.ToString().Contains("SpineShoulder")) || (bone.ToString().Contains("ShoulderLeft") && bone.ToString().Contains("SpineShoulder")))
+            {
+                if (angles["shoulderAngle"] < 130 || angles["shoulderAngle"] > 155)
+                {
+                    return Form.Bad;
                 }
             }
 
             return Form.Good;
-           
         }
     }
 }

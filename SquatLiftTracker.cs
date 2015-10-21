@@ -19,36 +19,37 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 {
                     return Form.Bad;
                 }
+            }        
+            if (bone.ToString().Contains("KneeLeft"))
+            {
+                if (angles["leftKneeAngle"] < 60)
+                {
+                    return Form.Bad;
+                }
             }
-            //else if (bone.ToString().Contains("LeftKnee"))
-            //{
-            //    if (angles["leftKneeAngle"] > 80)
-            //    {
-            //        return Form.Bad;
-            //    }
-
-            //}
-            //else if (bone.ToString().Contains("RightKnee"))
-            //{
-            //    if (angles["rightKneeAngle"] > 170)
-            //    {
-            //        return Form.Bad;
-            //    }
-            //}
-            //else if (bone.ToString().Contains("SpineShoulder"))
-            //{
-            //    if (angles["upperBackAngle"] > 170)
-            //    {
-            //        return Form.Bad;
-            //    }
-            //}
-            //else if (bone.ToString().Contains("SpineMid"))
-            //{
-            //    if (angles["lowerBackAngle"] > 80)
-            //    {
-            //        return Form.Bad;
-            //    }
-            //}
+            if (bone.ToString().Contains("KneeRight"))
+            {
+                if (angles["rightKneeAngle"] < 60)
+                {
+                    return Form.Bad;
+                }
+            }
+            if (bone.ToString().Contains("SpineShoulder"))
+            {
+                // TODO: make the range larger for warning type
+                // Generally the range is only between 176 and 178 FYI
+                if (Math.Floor(angles["upperBackAngle"]) != 177)
+                {
+                    return Form.Bad;
+                }
+            }
+            if (bone.ToString().Contains("SpineMid"))
+            {
+                if (Math.Floor(angles["lowerBackAngle"]) != 177 && Math.Floor(angles["lowerBackAngle"]) != 178)
+                {
+                    return Form.Bad;
+                }
+            }
 
             return Form.Good;
         }

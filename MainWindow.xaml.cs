@@ -163,6 +163,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// The Kalman fiters for each angle being measured
         /// </summary>        
         private SimpleKalman neckKalman = null;
+        private SimpleKalman shoulderKalman = null;
         private SimpleKalman upperBackKalman = null;
         private SimpleKalman lowerBackKalman = null;
         private SimpleKalman leftKneeKalman = null;
@@ -260,6 +261,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // initialise the kalman filters for each angle being measured
             this.neckKalman = new SimpleKalman();
+            this.shoulderKalman = new SimpleKalman();
             this.upperBackKalman = new SimpleKalman();
             this.lowerBackKalman = new SimpleKalman();
             this.leftKneeKalman = new SimpleKalman();
@@ -505,15 +507,17 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             double rightKneeAngle = rightKneeKalman.update(getRightKneeAngle(joints));
             double lowerBackAngle = lowerBackKalman.update(getLowerBackAngle(joints));
             double upperBackAngle = upperBackKalman.update(getUpperBackAngle(joints));
+            double shoulderAngle = neckKalman.update(getShoulderAngle(joints));
             double neckAngle = neckKalman.update(getNeckAngle(joints));
 
             angles.Add("leftKneeAngle", leftKneeAngle);
             angles.Add("rightKneeAngle", rightKneeAngle);
             angles.Add("lowerBackAngle", lowerBackAngle);
             angles.Add("upperBackAngle", upperBackAngle);
+            angles.Add("shoulderAngle", shoulderAngle);
             angles.Add("neckAngle", neckAngle);
 
-            Console.WriteLine(neckAngle);
+            Console.WriteLine(shoulderAngle);
 
             return angles;
         }
@@ -571,6 +575,21 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             joints.TryGetValue(JointType.SpineShoulder, out spineShoulder);
 
             return AngleBetweenJoints(spineMid, spineShoulder, neck);
+        }
+
+        private double getShoulderAngle(IReadOnlyDictionary<JointType, Joint> joints)
+        {
+
+            Joint shoulderLeft = new Joint();
+            joints.TryGetValue(JointType.ShoulderLeft, out shoulderLeft);
+
+            Joint spineShoulder = new Joint();
+            joints.TryGetValue(JointType.SpineShoulder, out spineShoulder);
+
+            Joint shoulderRight = new Joint();
+            joints.TryGetValue(JointType.ShoulderRight, out shoulderRight);
+
+            return AngleBetweenJoints(shoulderLeft, spineShoulder, shoulderRight);
         }
 
         private double getNeckAngle(IReadOnlyDictionary<JointType, Joint> joints)
@@ -939,10 +958,12 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                         case "DEADLIFT":
                             Console.WriteLine("DEADLIFT");
                             CurrentLift = Type.DeadLift;
+                            typeTitle.Text = "Dead Lift! ";
                             break;
                         case "SQUAT":
                             Console.WriteLine("SQUAT");
                             CurrentLift = Type.Squat;
+                            typeTitle.Text = "Squat! Ass to Grass!";
                             break;
                     }
                 }
@@ -952,6 +973,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                     {
                         case "STOP":
                             CurrentLift = Type.Inactive;
+                            typeTitle.Text = "Inactive State";
                             Console.WriteLine("STOP");
                             break;
                     }
