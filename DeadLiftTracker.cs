@@ -18,6 +18,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 if (angles["neckAngle"] < 130 || angles["neckAngle"] > 176)
                 {
                     return Form.Bad;
+                } 
+                // TODO: Example of how to add warning state.
+                else if (angles["neckAngle"] < 120 || angles["neckAngle"] > 120)
+                {
+                    return Form.Warn;
                 }
             }
             if (bone.ToString().Contains("KneeLeft"))
