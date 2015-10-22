@@ -13,41 +13,75 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         public Form track(Dictionary<string, double> angles, Tuple<JointType, JointType> bone, IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints)
         {
+            int warnRange = 3;
+
+            int neckLow = 130;
+            int neckHigh = 176;
+
             if (bone.ToString().Contains("Neck"))
             {
-                if (angles["neckAngle"] < 130 || angles["neckAngle"] > 176)
+                if (angles["neckAngle"] < neckLow || angles["neckAngle"] > neckHigh)
                 {
                     return Form.Bad;
                 }
-            }        
+                else if (angles["neckAngle"] < neckLow + warnRange || angles["neckAngle"] > neckHigh - warnRange)
+                {
+                    return Form.Warn;
+                }
+            }
+
+            int kneeLow = 60;
+
             if (bone.ToString().Contains("KneeLeft"))
             {
-                if (angles["leftKneeAngle"] < 60)
+                if (angles["leftKneeAngle"] < kneeLow)
                 {
                     return Form.Bad;
                 }
+                else if (angles["leftKneeAngle"] < kneeLow + warnRange)
+                {
+                    return Form.Warn;
+                }
             }
+
             if (bone.ToString().Contains("KneeRight"))
             {
-                if (angles["rightKneeAngle"] < 60)
+                if (angles["rightKneeAngle"] < kneeLow)
                 {
                     return Form.Bad;
                 }
+                else if (angles["rightKneeAngle"] < kneeLow + warnRange)
+                {
+                    return Form.Warn;
+                }
             }
+
+            int spineWarnMultiplier = 10;
+
+            int spineLow = 176;
+            int spineHigh = 178;
+
             if (bone.ToString().Contains("SpineShoulder"))
             {
-                // TODO: make the range larger for warning type
-                // Generally the range is only between 176 and 178 FYI
-                if (Math.Floor(angles["upperBackAngle"]) != 177)
+                if (angles["upperBackAngle"] < spineLow || angles["upperBackAngle"] > spineHigh)
                 {
                     return Form.Bad;
                 }
+                else if (angles["upperBackAngle"] < spineLow + warnRange / spineWarnMultiplier || angles["upperBackAngle"] > spineHigh - warnRange / spineWarnMultiplier)
+                {
+                    return Form.Warn;
+                }
             }
+
             if (bone.ToString().Contains("SpineMid"))
             {
-                if (Math.Floor(angles["lowerBackAngle"]) != 177 && Math.Floor(angles["lowerBackAngle"]) != 178)
+                if (angles["lowerBackAngle"] < spineLow || angles["lowerBackAngle"] > spineHigh)
                 {
                     return Form.Bad;
+                }
+                else if (angles["lowerBackAngle"] < spineLow + warnRange / spineWarnMultiplier || angles["lowerBackAngle"] > spineHigh - warnRange / spineWarnMultiplier)
+                {
+                    return Form.Warn;
                 }
             }
 
