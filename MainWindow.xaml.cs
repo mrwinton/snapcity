@@ -499,6 +499,19 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
         }
 
+        double neckHigh = 0;
+        double neckLow = 1000;
+        double shoulderHigh = 0;
+        double shoulderLow = 1000;
+        double upperBackHigh = 0;
+        double upperBackLow = 1000;
+        double lowerBackHigh = 0;
+        double lowerBackLow = 1000;
+        double leftKneeHigh = 0;
+        double leftKneeLow = 1000;
+        double rightKneeHigh = 0;
+        double rightKneeLow = 1000;
+
         public Dictionary<String, Double> getAngleDictionary(IReadOnlyDictionary<JointType, Joint> joints)
         {
             Dictionary<String, Double> angles = new Dictionary<String, Double>();
@@ -517,9 +530,42 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             angles.Add("shoulderAngle", shoulderAngle);
             angles.Add("neckAngle", neckAngle);
 
-            Console.WriteLine(shoulderAngle);
+            /* For calibration */
+            calibration(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle);
+            
+            /* Prints all live values constantly */
+            //Console.WriteLine("n: " + neckAngle  + ", s: " + shoulderAngle + ", ub: " + upperBackAngle  + ", lb: " + lowerBackAngle + ", lk: " + leftKneeAngle + ", rk: " + rightKneeAngle);
 
             return angles;
+        }
+
+        private void calibration(double leftKneeAngle, double rightKneeAngle, double lowerBackAngle, double upperBackAngle, double shoulderAngle, double neckAngle)
+        {
+            if (neckAngle > neckHigh) { neckHigh = neckAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            else if (neckAngle < neckLow) { neckLow = neckAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            if (shoulderAngle > shoulderHigh) { shoulderHigh = shoulderAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            else if (shoulderAngle < shoulderLow) { shoulderLow = shoulderAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            if (upperBackAngle > upperBackHigh) { upperBackHigh = upperBackAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            else if (upperBackAngle < upperBackLow) { upperBackLow = upperBackAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            if (lowerBackAngle > lowerBackHigh) { lowerBackHigh = lowerBackAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            else if (lowerBackAngle < lowerBackLow) { lowerBackLow = lowerBackAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            if (leftKneeAngle > leftKneeHigh) { leftKneeHigh = leftKneeAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            else if (leftKneeAngle < leftKneeLow) { leftKneeLow = leftKneeAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            if (rightKneeAngle > rightKneeHigh) { rightKneeHigh = rightKneeAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+            else if (rightKneeAngle < rightKneeLow) { rightKneeLow = rightKneeAngle; calibrationOut(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle); }
+        }
+
+        private void calibrationOut(double leftKneeAngle, double rightKneeAngle, double lowerBackAngle, double upperBackAngle, double shoulderAngle, double neckAngle)
+        {
+            if (this.CurrentLift != Type.Inactive)
+            {
+                Console.WriteLine("neckHigh: " + neckHigh + ", neckLow: " + neckLow);
+                Console.WriteLine("shoulderHigh: " + shoulderHigh + ", shoulderLow: " + shoulderLow);
+                Console.WriteLine("upperBackHigh: " + upperBackHigh + ", upperBackLow: " + upperBackLow);
+                Console.WriteLine("lowerBackHigh: " + lowerBackHigh + ", lowerBackLow: " + lowerBackLow);
+                Console.WriteLine("leftKneeHigh: " + leftKneeHigh + ", leftKneeLow: " + leftKneeLow);
+                Console.WriteLine("rightKneeHigh: " + rightKneeHigh + ", rightKneeLow: " + rightKneeLow);
+            }
         }
 
         private void drawJoints(IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints, DrawingContext drawingContext)
@@ -744,15 +790,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
                 else
                     Angulo = 0;
-
-
             }
             else
                 Angulo = 0;
-
-
             return Angulo;
-
         }
 
 
@@ -765,9 +806,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// <returns></returns>
         private static double vectorNorm(double x, double y, double z)
         {
-
             return Math.Sqrt(Math.Pow(x, 2) + Math.Pow(y, 2) + Math.Pow(z, 2));
-
         }
 
 

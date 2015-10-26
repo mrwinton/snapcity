@@ -13,10 +13,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
         public Form track(Dictionary<string, double> angles, Tuple<JointType, JointType> bone, IReadOnlyDictionary<JointType, Joint> joints, IDictionary<JointType, Point> jointPoints)
         {
-            int warnRange = 3;
+            double warnRange = 3;
 
-            int neckLow = 130;
-            int neckHigh = 176;
+            double neckLow = 79;
+            double neckHigh = 170;
 
             if (bone.ToString().Contains("Neck"))
             {
@@ -30,7 +30,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            int kneeLow = 60;
+            double kneeLow = 75;
 
             if (bone.ToString().Contains("KneeLeft"))
             {
@@ -56,10 +56,10 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            int spineWarnMultiplier = 10;
+            double spineWarnMultiplier = 10;
 
-            int spineLow = 176;
-            int spineHigh = 178;
+            double spineLow = 176;
+            double spineHigh = 179.5;
 
             /*if (bone.ToString().Contains("SpineShoulder"))
             {
@@ -85,8 +85,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            int shoulderLow = 130;
-            int shoulderHigh = 155;
+            double shoulderLow = 137;
+            double shoulderHigh = 170;
 
             if ((bone.ToString().Contains("ShoulderRight") && bone.ToString().Contains("SpineShoulder")) || (bone.ToString().Contains("ShoulderLeft") && bone.ToString().Contains("SpineShoulder")))
             {
