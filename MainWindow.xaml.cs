@@ -9,33 +9,16 @@ namespace Microsoft.Samples.Kinect.BodyBasics
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
-    using System.Diagnostics;
-    using System.Globalization;
     using System.IO;
     using System.Windows;
     using System.Windows.Media;
-    using System.Windows.Media.Imaging;
     using Microsoft.Kinect;
-    using Microsoft.Kinect.Input;
     using Microsoft.Speech.Recognition;
     using Microsoft.Speech.AudioFormat;
-    using Microsoft.Speech.Synthesis;
-    using Microsoft.Speech.Text;
-
-
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
-    using System.Windows;
-    using System.Windows.Documents;
-    using System.Windows.Media;
-    using Microsoft.Kinect;
-    using Microsoft.Speech.AudioFormat;
-    using Microsoft.Speech.Recognition;
     using SpeechBasics;
+    using System.Windows.Media.Imaging;
 
 
     /// <summary>
@@ -113,6 +96,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         private DrawingImage imageSource;
 
         /// <summary>
+        /// Drawing image that we will display
+        /// </summary>
+        private DrawingImage colorImageSource;
+
+        /// <summary>
         /// Active Kinect sensor
         /// </summary>
         private KinectSensor kinectSensor = null;
@@ -126,6 +114,11 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// Reader for body frames
         /// </summary>
         private BodyFrameReader bodyFrameReader = null;
+
+        /// <summary>
+        /// Reader for color frames
+        /// </summary>
+        private ColorFrameReader colorFrameReader = null;
 
         /// <summary>
         /// Array for the bodies
@@ -188,6 +181,20 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// </summary>        
         private readonly Pen badFormBonePen = new Pen(Brushes.Red, BoneBrushSize);
 
+        /// <summary>
+        /// Stream for 32b-16b conversion.
+        /// </summary>
+        private KinectAudioStream convertStream = null;
+
+        /// <summary>
+        /// Speech recognition engine using audio data from Kinect.
+        /// </summary>
+        private SpeechRecognitionEngine speechEngine = null;
+        /// <summary>
+        /// Bitmap to display
+        /// </summary>
+        private WriteableBitmap bitmap = null;
+
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -202,6 +209,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
 
             // get the depth (display) extents
             FrameDescription frameDescription = this.kinectSensor.DepthFrameSource.FrameDescription;
+            FrameDescription colorFrameDescription = this.kinectSensor.ColorFrameSource.FrameDescription;
+
+            this.colorFrameReader = this.kinectSensor.ColorFrameSource.OpenReader();
 
             // get size of joint space
             this.displayWidth = frameDescription.Width;
@@ -284,6 +294,9 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             // Create the drawing group we'll use for drawing
             this.drawingGroup = new DrawingGroup();
 
+            // create the bitmap to display
+            this.bitmap = new WriteableBitmap(colorFrameDescription.Width, colorFrameDescription.Height, 96.0, 96.0, PixelFormats.Bgr32, null);
+
             // Create an image source that we can use in our image control
             this.imageSource = new DrawingImage(this.drawingGroup);
 
@@ -314,6 +327,17 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         }
 
         /// <summary>
+        /// Gets the bitmap to display
+        /// </summary>
+        public ImageSource ColorImageSource
+        {
+            get
+            {
+                return this.bitmap;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the current status text to display
         /// </summary>
         public string StatusText
@@ -338,6 +362,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             }
         }
 
+        public byte[] pixels { get; private set; }
+
         /// <summary>
         /// Execute start up tasks
         /// </summary>
@@ -345,9 +371,45 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// <param name="e">event arguments</param>
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            if (this.bodyFrameReader != null)
+
+            if (this.colorFrameReader != null)
+                     {
+                            this.colorFrameReader.FrameArrived += this.ColorFrameReaderFrameArrived;
+                          }
+            
+           if (this.bodyFrameReader != null)
+                     {
+                              this.bodyFrameReader.FrameArrived += this.Reader_FrameArrived;
+                }
+
+        }
+
+        private void ColorFrameReaderFrameArrived(object sender, ColorFrameArrivedEventArgs e)
+           {
+            using (ColorFrame colorFrame = e.FrameReference.AcquireFrame())
             {
-                this.bodyFrameReader.FrameArrived += this.Reader_FrameArrived;
+                if (colorFrame != null)
+                {
+                    FrameDescription colorFrameDescription = colorFrame.FrameDescription;
+
+                    using (KinectBuffer colorBuffer = colorFrame.LockRawImageBuffer())
+                    {
+                        this.bitmap.Lock();
+
+                        // verify data and write the new color frame data to the display bitmap
+                        if ((colorFrameDescription.Width == this.bitmap.PixelWidth) && (colorFrameDescription.Height == this.bitmap.PixelHeight))
+                        {
+                            colorFrame.CopyConvertedFrameDataToIntPtr(
+                                this.bitmap.BackBuffer,
+                                (uint)(colorFrameDescription.Width * colorFrameDescription.Height * 4),
+                                ColorImageFormat.Bgra);
+
+                            this.bitmap.AddDirtyRect(new Int32Rect(0, 0, this.bitmap.PixelWidth, this.bitmap.PixelHeight));
+                        }
+
+                        this.bitmap.Unlock();
+                    }
+                }
             }
         }
 
@@ -403,7 +465,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 using (DrawingContext dc = this.drawingGroup.Open())
                 {
                     // Draw a transparent background to set the render size
-                    dc.DrawRectangle(Brushes.Black, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
+                    dc.DrawRectangle(Brushes.Transparent, null, new Rect(0.0, 0.0, this.displayWidth, this.displayHeight));
 
                     int penIndex = 0;
                     foreach (Body body in this.bodies)
@@ -531,7 +593,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             angles.Add("neckAngle", neckAngle);
 
             /* For calibration */
-            calibration(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle);
+            //calibration(leftKneeAngle, rightKneeAngle, lowerBackAngle, upperBackAngle, shoulderAngle, neckAngle);
             
             /* Prints all live values constantly */
             //Console.WriteLine("n: " + neckAngle  + ", s: " + shoulderAngle + ", ub: " + upperBackAngle  + ", lb: " + lowerBackAngle + ", lk: " + leftKneeAngle + ", rk: " + rightKneeAngle);
@@ -821,16 +883,6 @@ namespace Microsoft.Samples.Kinect.BodyBasics
             this.StatusText = this.kinectSensor.IsAvailable ? Properties.Resources.RunningStatusText
                                                             : Properties.Resources.SensorNotAvailableStatusText;
         }
-
-        /// <summary>
-        /// Stream for 32b-16b conversion.
-        /// </summary>
-        private KinectAudioStream convertStream = null;
-
-        /// <summary>
-        /// Speech recognition engine using audio data from Kinect.
-        /// </summary>
-        private SpeechRecognitionEngine speechEngine = null;
 
         /// <summary>
         /// Gets the metadata for the speech recognizer (acoustic model) most suitable to
