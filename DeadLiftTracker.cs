@@ -85,8 +85,8 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                 }
             }
 
-            double shoulderLow = 137;
-            double shoulderHigh = 170;
+            double shoulderLow = 135;
+            double shoulderHigh = 160;
 
             if ((bone.ToString().Contains("ShoulderRight") && bone.ToString().Contains("SpineShoulder")) || (bone.ToString().Contains("ShoulderLeft") && bone.ToString().Contains("SpineShoulder")))
             {
