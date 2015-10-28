@@ -4,22 +4,22 @@
       <item>
         <tag>DEADLIFT</tag>
         <one-of>
-          <item> dead lift </item>
-          <item> deadlifts </item>
-          <item> deadlift </item>
+          <item> form check deadlift </item>
+          <item> form check deadlifts </item>
+          <item> form check dead lift </item>
         </one-of>
       </item>
       <item>
         <tag>SQUAT</tag>
         <one-of>
-          <item> squat </item>
-          <item> squats </item>
+          <item> form check squat </item>
+          <item> form check squats </item>
         </one-of>
       </item>
       <item>
         <tag>STOP</tag>
         <one-of>
-          <item> stop </item>
+          <item> form check stop </item>
         </one-of>
       </item>
     </one-of>
