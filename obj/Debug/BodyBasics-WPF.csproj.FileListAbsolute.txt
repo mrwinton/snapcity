@@ -29,3 +29,19 @@ C:\Users\Cal\Source\Repos\snapcity\obj\Debug\Microsoft.Samples.Kinect.BodyBasics
 C:\Users\Cal\Source\Repos\snapcity\obj\Debug\BodyBasics-WPF.csproj.GenerateResource.Cache
 C:\Users\Cal\Source\Repos\snapcity\obj\Debug\BodyBasics-WPF.exe
 C:\Users\Cal\Source\Repos\snapcity\obj\Debug\BodyBasics-WPF.pdb
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\bin\AnyCPU\Debug\BodyBasics-WPF.exe.config
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\BodyBasics-WPF.exe
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\BodyBasics-WPF.pdb
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\bin\AnyCPU\Debug\BodyBasics-WPF.exe
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\bin\AnyCPU\Debug\BodyBasics-WPF.pdb
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\bin\AnyCPU\Debug\Microsoft.Kinect.dll
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\bin\AnyCPU\Debug\Microsoft.Speech.dll
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\bin\AnyCPU\Debug\Microsoft.Kinect.xml
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\BodyBasics-WPF.csprojResolveAssemblyReference.cache
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\MainWindow.baml
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\MainWindow.g.cs
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\App.g.cs
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\BodyBasics-WPF_MarkupCompile.cache
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\BodyBasics-WPF.g.resources
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\Microsoft.Samples.Kinect.BodyBasics.Properties.Resources.resources
+D:\Victoria University\Year 4\SWEN422 - Human Computer Interaction\Snap-City\snapcity\obj\Debug\BodyBasics-WPF.csproj.GenerateResource.Cache

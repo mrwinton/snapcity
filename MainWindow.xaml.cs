@@ -1054,7 +1054,7 @@ namespace Microsoft.Samples.Kinect.BodyBasics
                         case "SQUAT":
                             Console.WriteLine("SQUAT");
                             CurrentLift = Type.Squat;
-                            typeTitle.Text = "Squat! Ass to Grass!";
+                            typeTitle.Text = "Squat! ";
                             break;
                     }
                 }
@@ -1081,6 +1081,20 @@ namespace Microsoft.Samples.Kinect.BodyBasics
         /// <param name="e">event arguments.</param>
         private void SpeechRejected(object sender, SpeechRecognitionRejectedEventArgs e)
         {
+        }
+
+        private void buttonSquatClick(object sender, RoutedEventArgs e)
+        {
+            Console.WriteLine("SQUAT");
+            CurrentLift = Type.Squat;
+            typeTitle.Text = "Squat! ";
+        }
+
+        private void buttonDeadLiftClick(object sender, RoutedEventArgs e)
+        {
+            Console.WriteLine("DEADLIFT");
+            CurrentLift = Type.DeadLift;
+            typeTitle.Text = "Dead Lift! ";
         }
     }
 }

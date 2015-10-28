@@ -18,7 +18,7 @@
         </Grid.RowDefinitions>
 
         <Image Grid.Row="0" Source="Images\Logo.png" HorizontalAlignment="Left" Stretch="Fill" Height="32" Width="81" Margin="0 10 0 5" />
-        <TextBlock Grid.Row="0" Margin="0 0 -1 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Foreground="{StaticResource MediumGreyBrush}" FontFamily="Segoe UI" FontSize="18"><Run Text="Snap City"/><LineBreak/><Run/></TextBlock>
+        <TextBlock Grid.Row="0" Margin="0 0 -1 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Foreground="{StaticResource MediumGreyBrush}" FontFamily="Segoe UI" FontSize="18" FontWeight="Bold"><Run Text="Snap City"/><LineBreak/><Run/></TextBlock>
         <Image Grid.Row="0" Source="Images\Status.png" Stretch="None" HorizontalAlignment="Center" Margin="0 0 0 5" />
 
         <Viewbox Grid.Row="1" HorizontalAlignment="Center">
@@ -32,5 +32,7 @@
             <StatusBarItem Content="{Binding StatusText}" />
         </StatusBar>
         <TextBlock x:Name="typeTitle" HorizontalAlignment="Center" Margin="45,0,43,0" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="1" Height="46" Width="584" Foreground="White" Background="Black" FontSize="25" TextAlignment="Center" Padding="3"><Run Text="Inactive State"/></TextBlock>
+        <Button x:Name="buttonDeadLift" Content="Dead Lift" Foreground="{StaticResource MediumGreyBrush}"  HorizontalAlignment="Left" Margin="449,14,0,0" VerticalAlignment="Top" Width="65" Height="22" Click="buttonDeadLiftClick"/>
+        <Button x:Name="buttonSquat" Content="Squat" Foreground="{StaticResource MediumGreyBrush}"  HorizontalAlignment="Left" Margin="519,14,0,0" VerticalAlignment="Top" Width="56" Height="22" Click="buttonSquatClick"/>
     </Grid>
 </Window>
