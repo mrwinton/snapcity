@@ -1,2 +1,2 @@
 # Snap City
-Correct your form, bro! With the Kinect!
+Correct your squat and deadlift form with the Kinect!
